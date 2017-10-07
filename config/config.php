@@ -11,7 +11,7 @@ return [
         /*
          * Here goes the application name.
          */
-        'name' => 'Laravel Zero',
+        'name' => 'BF4 Player Search',
 
         /*
          * Here goes the application version.
@@ -30,7 +30,7 @@ return [
          * You may want to remove this line in order to ask the user what command he
          * wants to execute.
          */
-        'default-command' => App\Commands\HelloCommand::class,
+        'default-command' => App\Commands\SearchCommand::class,
 
         /*
          * Here goes the application list of commands.
