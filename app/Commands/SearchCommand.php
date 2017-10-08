@@ -29,6 +29,7 @@ class SearchCommand extends Command
      */
     protected $description = 'Search for players';
 
+    public $pid = 0;
     /**
      * Execute the command. Here goes the code.
      *
@@ -38,16 +39,15 @@ class SearchCommand extends Command
     {
         $this->info('Love beautiful code? We do too.');
         if ($user = Battlelog::getUser($this->argument('name'))) {
+            $this->pid = $user->personaId;
             $limit = (int)$this->argument('limit');
-            $reports = $this->getReportList($user->personaId, $limit);
-            $report_data = $this->getReports($user->personaId, $reports);
-            $headers = ['time', 'headshots'];
+            $reports = $this->getReportList($this->pid, $limit);
+            $report_data = $this->getReports($this->pid, $reports);
+            $headers = ['Report Date', 'RT(s)', 'VD', 'BV', 'BVK', 'K', 'D', 'HS', 'fired', 'hit', 'BWK', 'BW', 'S', 'SPM', 'Report ID', 'Rank',  'Map', 'Type', 'Mode', 'KDR', 'HSKR', 'TP', 'ACC', 'KPH'];
             $this->table($headers, $report_data);
         }
 
-
-        $this->comment('Wanna see more? Type `php your-app-name list`');
-        $this->notify('List has completed finding reports' . $this->argument('name'), 'Enjoy the fresh air!');
+        $this->notify('List has completed finding reports for ' . $this->argument('name'), 'Take a look!');
     }
 
     /**
@@ -140,14 +140,22 @@ class SearchCommand extends Command
             $current_report = $current_report + 1;
             $bar->advance();
             $report = Battlelog::getBattlereport($report_id, $pid);
-
+            if($report->playerReport === null){
+                //player did nothing
+                $bar->advance();
+                continue;
+            }
             $report_stats = $this->getReport($report);
             array_push($stats, $report_stats);
         }
         return $stats;
     }
 
-    public function getHeadshots($battlereport)
+    /**
+     * @param $battlereport
+     * @return int
+     */
+    public function getHeadshots($battlereport) : int
     {
         $awards = $battlereport->playerReport->unlocks->awards;
         if ($awards != null && sizeof($awards) > 0) {
@@ -155,7 +163,6 @@ class SearchCommand extends Command
                 if ($award->unlockId == 'r04') {
                     return $award->timesTaken * 3;
                 }
-
             }
         }
         return 0;
@@ -184,6 +191,9 @@ class SearchCommand extends Command
             } else {
                 $report->best_vehicle_kills = 0;
             }
+        } else {
+            $report->best_vehicle = "NONE";
+            $report->best_vehicle_kills = 0;
         }
 
 
@@ -205,11 +215,23 @@ class SearchCommand extends Command
             } else {
                 $report->best_weapon = "NONE";
             }
-
+        } else {
+            $report->best_weapon_kills = 0;
+            $report->best_weapon = "NONE";
         }
 
         $report->score = $battlereport->playerReport->scores->total;
-        $report->spm = $battlereport->playerReport->stats->spm;
+        if(isset($battlereport->playerReport->stats->spm))
+        {
+            $report->spm = $battlereport->playerReport->stats->spm;
+        } else {
+            $report->spm = 0;
+        }
+        $report->report_id = $battlereport->id;
+        $report->rank = $battlereport->players->{$this->pid}->rank;
+        $report->map = $battlereport->gameServer->map;
+        $report->type = $battlereport->gameServer->serverType;
+        $report->mode = $battlereport->gameServer->mapMode;
         return $report->toArray();
     }
 }

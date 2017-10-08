@@ -10,6 +10,7 @@ class ReportStats extends Model
     protected $primaryKey = 'id';
     protected $dates = ['created_at', 'updated_at', 'report_time'];
     public $incrementing = false;
+    protected $appends = ['kdr', 'hskr', 'time_playing', 'accuracy', 'kph'];
 
     protected $fillable = [
         'report_time', //timestamp
@@ -30,7 +31,9 @@ class ReportStats extends Model
         'best_weapon',
         'score',
         'spm',
-        'report_id' //battlereport id that will link to the main report and include map stats ect
+        'report_id', //battlereport id that will link to the main report and include map stats ect
+        'mode',
+        'type'
     ];
 
     /**
@@ -42,13 +45,30 @@ class ReportStats extends Model
     }
 
     /**
-     * get the map name for this round
+     * Game mode
      * @param $value
      * @return mixed
      */
-    public function getMapAttribute($value)
-    {
-        return $this->report->map;
+    public function getModeAttribute($value) {
+         $modes = [
+            '64' => 'Conquest Large',
+            '1' => 'Conquest',
+            '2097152' => 'Obliteration',
+            '1024' => 'Domination',
+            '2' => 'Rush',
+            '8' => 'Squad Deathmatch',
+            '32' => 'Team Deathmatch',
+            '16777216' => 'Defuse',
+            '8388608' => 'Air Superiority',
+            '524288' => 'Capture the Flag',
+            '67108864' => 'Carrier Assault Large',
+            '134217728' => 'Carrier Assault',
+            '34359738368' => 'Chain Link',
+            '68719476736' => 'Conquest Ladder',
+            '137438953472' => 'Squad Obliteration',
+            '512' => 'Gun Master'
+        ];
+        return $modes[(string)$value];
     }
 
     /**
@@ -58,7 +78,14 @@ class ReportStats extends Model
      */
     public function getKdrAttribute($value)
     {
-        return $this->kills / $this->deaths;
+        if($this->kills == 0) {
+            return 0;
+        }
+        if($this->deaths == 0)
+        {
+            $this->deaths = 1;
+        }
+        return round($this->kills / $this->deaths, 2);
     }
 
     /**
@@ -68,7 +95,15 @@ class ReportStats extends Model
      */
     public function getHskrAttribute($value)
     {
-        return 100* ($this->headshots / $this->kills);
+        if($this->headshots == 0)
+        {
+            return 0;
+        }
+        if($this->kills == 0)
+        {
+            return 0;
+        }
+        return round(100* ($this->headshots / $this->kills), 2);
     }
 
     /**
@@ -78,7 +113,15 @@ class ReportStats extends Model
      */
     public function getTimePlayingAttribute($value)
     {
-        return $this->score / $this->spm;
+        if($this->score == 0)
+        {
+            $this->score = 1;
+        }
+        if($this->spm == 0)
+        {
+            $this->spm = 1;
+        }
+        return round(($this->score / $this->spm) * 60, 2);
     }
 
     /**
@@ -88,6 +131,46 @@ class ReportStats extends Model
      */
     public function getAccuracyAttribute($value)
     {
-        return 100* ($this->hit / $this->fired);
+        if($this->hit == 0) {
+            return 0;
+        }
+        if($this->fired == 0) {
+            return 0;
+        }
+        return round(100* ($this->hit / $this->fired), 2);
+    }
+
+    /**
+     * Kills per hit
+     * @param $value
+     * @return float
+     */
+    public function getKphAttribute($value)
+    {
+        if($this->kills == 0)
+        {
+            return 0;
+        }
+        if($this->hit == 0)
+        {
+            $this->hit = 1;
+        }
+        return round(100 * ($this->kills / $this->hit));
+    }
+
+    /**
+     * game mode
+     * @param $value
+     * @return mixed
+     */
+    public function getTypeAttribute($value)
+    {
+        $types = [
+            '1' => 'O',
+            '2' => 'R',
+            '4' => 'U',
+            '8' => 'P',
+        ];
+        return $types[(string)$value];
     }
 }
